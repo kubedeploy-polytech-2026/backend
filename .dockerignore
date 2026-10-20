@@ -1,2 +1,7 @@
 .git
 backend
+.tools/
+/image.tar
+/trivy.json
+/sbom.cdx.json
+/dist/
