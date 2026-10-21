@@ -9,8 +9,13 @@ esac
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 archive="trivy_${version}_Linux-${architecture}.tar.gz"
-gh release download "v$version" --repo aquasecurity/trivy \
-  --pattern "$archive" --pattern "trivy_${version}_checksums.txt" --dir "$work_dir"
+# Public release assets do not need a repository-scoped GitHub token.
+release_url="https://github.com/aquasecurity/trivy/releases/download/v$version"
+for file in "$archive" "trivy_${version}_checksums.txt"; do
+  curl --fail --silent --show-error --location --retry 3 \
+    --connect-timeout 20 --max-time 180 \
+    --output "$work_dir/$file" "$release_url/$file"
+done
 (cd "$work_dir" && sha256sum --check --ignore-missing "trivy_${version}_checksums.txt")
 mkdir -p .tools/bin
 tar -xzf "$work_dir/$archive" -C .tools/bin trivy
