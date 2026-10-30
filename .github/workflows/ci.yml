@@ -32,6 +32,19 @@ jobs:
     timeout-minutes: 25
     env:
       RELEASE_TAG: ${{ inputs.release-tag }}
+      TEST_DATABASE_URL: postgres://kubedeploy:integration-test-only@127.0.0.1:5432/kubedeploy_test?sslmode=disable
+    services:
+      postgres:
+        image: postgres:17.11-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+        env:
+          POSTGRES_USER: kubedeploy
+          POSTGRES_DB: kubedeploy_test
+          POSTGRES_PASSWORD: integration-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U kubedeploy -d kubedeploy_test"
+          --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,6 +53,8 @@ jobs:
         with:
           go-version: 1.27.3
           cache: false
+      - name: Prepare integration database schema
+        run: docker exec "${{ job.services.postgres.id }}" psql -U kubedeploy -d kubedeploy_test -c 'CREATE SCHEMA app AUTHORIZATION kubedeploy'
       - name: Test and vet
         run: |
           go test -race ./...
