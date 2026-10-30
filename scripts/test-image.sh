@@ -25,5 +25,9 @@ done
 [[ "$ready" == true ]]
 jq -e '.status == "ok"' "$work_dir/health" >/dev/null
 curl --fail --silent --show-error --max-time 5 "$url/api/version" | \
-  jq -e '.service == "kubedeploy-backend" and .version == "0.1.0"' >/dev/null
+  jq -e '.service == "kubedeploy-backend" and .version == "0.2.0"' >/dev/null
+for path in /readyz /api/notes; do
+  status="$(curl --silent --max-time 5 --output /dev/null --write-out '%{http_code}' "$url$path")"
+  [[ "$status" == 503 ]]
+done
 echo 'Container smoke passed with read-only filesystem, no-new-privileges and dropped capabilities'
